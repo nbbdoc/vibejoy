@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VibeJoy - Vibration Controller</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1a0a1a 0%, #2d1b3d 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            height: 100vh;
+            max-height: 800px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #ff6b9d, #c66efc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0;
+            text-shadow: 0 0 30px rgba(255, 107, 157, 0.3);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .start-button {
+            width: 100%;
+            padding: 24px;
+            background: linear-gradient(45deg, #ff6b9d, #c66efc);
+            border: none;
+            border-radius: 20px;
+            color: white;
+            font-size: 1.4rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(255, 107, 157, 0.4);
+        }
+
+        .start-button:active {
+            transform: translateY(0);
+        }
+
+        .start-button.active {
+            background: linear-gradient(45deg, #ff4757, #ff6348);
+            animation: pulse 1s infinite;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .control-button {
+            flex: 1;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            position: relative;
+        }
+
+        .control-button::before {
+            display: block;
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+        }
+
+        .control-button[data-panel="intensity"]::before {
+            content: "📶";
+        }
+
+        .control-button[data-panel="pattern"]::before {
+            content: "📳";
+        }
+
+        .control-button[data-panel="timer"]::before {
+            content: "🕐";
+        }
+
+        .control-button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .control-button.active {
+            background: linear-gradient(45deg, #ff6b9d, #c66efc);
+            border-color: transparent;
+        }
+
+        .panel {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(26, 10, 26, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            padding: 20px;
+            overflow-y: auto;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-top: 40px;
+        }
+
+        .panel-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .close-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 12px 16px;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-panel:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .control-label {
+            display: block;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b9d, #c66efc);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 15px rgba(255, 107, 157, 0.5);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b9d, #c66efc);
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .slider::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 15px rgba(255, 107, 157, 0.5);
+        }
+
+
+
+        .pattern-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .pattern-btn {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pattern-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .pattern-btn.active {
+            background: linear-gradient(45deg, #ff6b9d, #c66efc);
+            border-color: transparent;
+        }
+
+        .intensity-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .intensity-btn {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .intensity-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .intensity-btn.active {
+            background: linear-gradient(45deg, #ff6b9d, #c66efc);
+            border-color: transparent;
+        }
+
+        .timer-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .timer-btn {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .timer-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .timer-btn.active {
+            background: linear-gradient(45deg, #ff6b9d, #c66efc);
+            border-color: transparent;
+        }
+
+
+
+        .value-display {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            margin-left: 8px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            margin-top: 24px;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .no-vibration {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 107, 157, 0.1);
+            border: 1px solid rgba(255, 107, 157, 0.3);
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                max-height: 100vh;
+                border-radius: 0;
+            }
+            
+            h1 {
+                font-size: 1.6rem;
+            }
+            
+            .start-button {
+                padding: 20px;
+                font-size: 1.2rem;
+            }
+            
+            .control-button {
+                padding: 14px;
+                font-size: 0.85rem;
+            }
+            
+            .control-button::before {
+                font-size: 1.3rem;
+            }
+            
+            .panel {
+                padding: 16px;
+            }
+            
+            .panel-header {
+                padding-top: 20px;
+                margin-bottom: 20px;
+            }
+            
+            .panel-title {
+                font-size: 1.3rem;
+            }
+            
+            .close-panel {
+                width: 45px;
+                height: 45px;
+                font-size: 1.3rem;
+            }
+            
+            .pattern-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .intensity-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .timer-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .pattern-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .intensity-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .timer-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>VibeJoy</h1>
+        </div>
+        
+        <div class="main-content">
+            <div id="noVibrationSupport" class="no-vibration" style="display: none;">
+                ⚠️ Vibration API not supported on this device
+            </div>
+            
+            <button id="vibrateToggle" class="start-button">
+                Start Vibration
+            </button>
+            
+            <div class="control-buttons">
+                <button id="intensityBtn" class="control-button" data-panel="intensity"></button>
+                <button id="patternBtn" class="control-button" data-panel="pattern"></button>
+                <button id="timerBtn" class="control-button" data-panel="timer"></button>
+            </div>
+            
+            <!-- Intensity Panel -->
+            <div id="intensityPanel" class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Intensity Level</div>
+                    <button class="close-panel" data-panel="intensity">×</button>
+                </div>
+                <div class="intensity-buttons">
+                    <button class="intensity-btn" data-intensity="gentle">Gentle</button>
+                    <button class="intensity-btn active" data-intensity="medium">Medium</button>
+                    <button class="intensity-btn" data-intensity="intense">Intense</button>
+                    <button class="intensity-btn" data-intensity="extreme">Extreme</button>
+                </div>
+                <div style="margin-top: 16px;">
+                    <div class="control-label">
+                        Fine Tune
+                        <span id="intensityValue" class="value-display">50%</span>
+                    </div>
+                    <input type="range" id="intensitySlider" class="slider" min="1" max="100" value="50">
+                </div>
+            </div>
+            
+            <!-- Pattern Panel -->
+            <div id="patternPanel" class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Vibration Pattern</div>
+                    <button class="close-panel" data-panel="pattern">×</button>
+                </div>
+                <div class="pattern-buttons">
+                    <button class="pattern-btn active" data-pattern="continuous">Continuous</button>
+                    <button class="pattern-btn" data-pattern="pulse">Pulse</button>
+                    <button class="pattern-btn" data-pattern="wave">Wave</button>
+                    <button class="pattern-btn" data-pattern="burst">Burst</button>
+                    <button class="pattern-btn" data-pattern="heartbeat">Heartbeat</button>
+                    <button class="pattern-btn" data-pattern="escalate">Escalate</button>
+                    <button class="pattern-btn" data-pattern="throb">Throb</button>
+                    <button class="pattern-btn" data-pattern="rumble">Rumble</button>
+                    <button class="pattern-btn" data-pattern="flicker">Flicker</button>
+                    <button class="pattern-btn" data-pattern="hammer">Hammer</button>
+                    <button class="pattern-btn" data-pattern="quake">Quake</button>
+                    <button class="pattern-btn" data-pattern="storm">Storm</button>
+                </div>
+            </div>
+            
+            <!-- Timer Panel -->
+            <div id="timerPanel" class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Auto-off Timer</div>
+                    <button class="close-panel" data-panel="timer">×</button>
+                </div>
+                <div class="timer-buttons">
+                    <button class="timer-btn active" data-timer="0">Off</button>
+                    <button class="timer-btn" data-timer="10">10s</button>
+                    <button class="timer-btn" data-timer="30">30s</button>
+                    <button class="timer-btn" data-timer="60">1m</button>
+                    <button class="timer-btn" data-timer="120">2m</button>
+                    <button class="timer-btn" data-timer="180">3m</button>
+                </div>
+            </div>
+            
+            <div id="status" class="status">
+                Ready to vibrate
+            </div>
+        </div>
+    </div>
+
+    <input type="checkbox" id="hapticTrigger" switch style="display: none;">
+    
+    <script>
+        class VibrationController {
+            constructor() {
+                this.isVibrating = false;
+                this.intensity = 50;
+                this.pattern = 'continuous';
+                this.autoOffTimer = null;
+                this.vibrationInterval = null;
+                this.supportsVibration = 'vibrate' in navigator;
+                this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                this.isIOS18 = this.isIOS && this.checkIOS18();
+                
+                this.initializeElements();
+                this.attachEventListeners();
+                this.checkVibrationSupport();
+            }
+            
+            initializeElements() {
+                this.vibrateToggle = document.getElementById('vibrateToggle');
+                this.intensitySlider = document.getElementById('intensitySlider');
+                this.intensityValue = document.getElementById('intensityValue');
+                this.status = document.getElementById('status');
+                this.noVibrationSupport = document.getElementById('noVibrationSupport');
+                this.hapticTrigger = document.getElementById('hapticTrigger');
+                this.autoOffTime = 0;
+                
+                // Panel elements
+                this.intensityBtn = document.getElementById('intensityBtn');
+                this.patternBtn = document.getElementById('patternBtn');
+                this.timerBtn = document.getElementById('timerBtn');
+                this.intensityPanel = document.getElementById('intensityPanel');
+                this.patternPanel = document.getElementById('patternPanel');
+                this.timerPanel = document.getElementById('timerPanel');
+                
+                // Button groups
+                this.patternButtons = document.querySelectorAll('.pattern-btn');
+                this.intensityButtons = document.querySelectorAll('.intensity-btn');
+                this.timerButtons = document.querySelectorAll('.timer-btn');
+                this.controlButtons = document.querySelectorAll('.control-button');
+                this.closePanelButtons = document.querySelectorAll('.close-panel');
+            }
+            
+            attachEventListeners() {
+                this.vibrateToggle.addEventListener('click', () => this.toggleVibration());
+                
+                // Panel control buttons
+                this.controlButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const panelName = e.target.dataset.panel;
+                        this.openPanel(panelName);
+                    });
+                });
+                
+                // Close panel buttons
+                this.closePanelButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const panelName = e.target.dataset.panel;
+                        this.closePanel(panelName);
+                    });
+                });
+                
+                // Intensity slider
+                this.intensitySlider.addEventListener('input', (e) => {
+                    this.intensity = e.target.value;
+                    this.intensityValue.textContent = `${this.intensity}%`;
+                    if (this.isVibrating) {
+                        this.updateVibration();
+                    }
+                });
+                
+                // Pattern buttons
+                this.patternButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.patternButtons.forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.pattern = e.target.dataset.pattern;
+                        this.closePanel('pattern');
+                        if (this.isVibrating) {
+                            this.updateVibration();
+                        }
+                    });
+                });
+                
+                // Intensity buttons
+                this.intensityButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.intensityButtons.forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        const intensityLevel = e.target.dataset.intensity;
+                        this.setIntensityLevel(intensityLevel);
+                        if (this.isVibrating) {
+                            this.updateVibration();
+                        }
+                    });
+                });
+                
+                // Timer buttons
+                this.timerButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.timerButtons.forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.autoOffTime = parseInt(e.target.dataset.timer);
+                        this.closePanel('timer');
+                        if (this.isVibrating) {
+                            this.setAutoOffTimer(this.autoOffTime);
+                        }
+                    });
+                });
+            }
+            
+            checkVibrationSupport() {
+                if (!this.supportsVibration && !this.isIOS18) {
+                    this.noVibrationSupport.style.display = 'block';
+                    this.vibrateToggle.disabled = true;
+                    this.vibrateToggle.textContent = 'Vibration Not Supported';
+                    this.status.textContent = 'This device does not support vibration';
+                } else if (this.isIOS && !this.isIOS18) {
+                    this.noVibrationSupport.innerHTML = '⚠️ iOS requires iOS 18+ for haptic feedback';
+                    this.noVibrationSupport.style.display = 'block';
+                    this.status.textContent = 'Limited iOS support - try iOS 18+';
+                }
+            }
+            
+            checkIOS18() {
+                const match = navigator.userAgent.match(/OS (\d+)_(\d+)/);
+                if (match) {
+                    const majorVersion = parseInt(match[1]);
+                    return majorVersion >= 18;
+                }
+                return false;
+            }
+            
+            toggleVibration() {
+                if (this.isVibrating) {
+                    this.stopVibration();
+                } else {
+                    this.startVibration();
+                }
+            }
+            
+            startVibration() {
+                if (!this.supportsVibration && !this.isIOS18) return;
+                
+                this.isVibrating = true;
+                this.vibrateToggle.classList.add('active');
+                this.vibrateToggle.textContent = 'Stop Vibration';
+                this.status.textContent = 'Vibrating...';
+                
+                this.updateVibration();
+                this.setAutoOffTimer(this.autoOffTime);
+            }
+            
+            stopVibration() {
+                this.isVibrating = false;
+                this.vibrateToggle.classList.remove('active');
+                this.vibrateToggle.textContent = 'Start Vibration';
+                this.status.textContent = 'Vibration stopped';
+                
+                if (this.vibrationInterval) {
+                    clearInterval(this.vibrationInterval);
+                    this.vibrationInterval = null;
+                }
+                
+                if (this.autoOffTimer) {
+                    clearTimeout(this.autoOffTimer);
+                    this.autoOffTimer = null;
+                }
+                
+                if (this.supportsVibration) {
+                    navigator.vibrate(0);
+                }
+            }
+            
+            updateVibration() {
+                if (!this.isVibrating) return;
+                
+                if (this.vibrationInterval) {
+                    clearInterval(this.vibrationInterval);
+                }
+                
+                const duration = this.intensity * 10;
+                
+                if (this.supportsVibration) {
+                    this.updateVibrationAndroid(duration);
+                } else if (this.isIOS18) {
+                    this.updateVibrationIOS(duration);
+                }
+            }
+            
+            updateVibrationAndroid(duration) {
+                switch (this.pattern) {
+                    case 'continuous':
+                        navigator.vibrate(duration);
+                        this.vibrationInterval = setInterval(() => {
+                            if (this.isVibrating) {
+                                navigator.vibrate(duration);
+                            }
+                        }, duration + 100);
+                        break;
+                        
+                    case 'pulse':
+                        this.vibrationInterval = setInterval(() => {
+                            if (this.isVibrating) {
+                                navigator.vibrate([duration/2, duration/2]);
+                            }
+                        }, duration * 2);
+                        break;
+                        
+                    case 'wave':
+                        this.vibrationInterval = setInterval(() => {
+                            if (this.isVibrating) {
+                                navigator.vibrate([duration/4, duration/4, duration/2, duration/4]);
+                            }
+                        }, duration * 2);
+                        break;
+                        
+                    case 'burst':
+                        this.vibrationInterval = setInterval(() => {
+                            if (this.isVibrating) {
+                                navigator.vibrate([duration/8, duration/8, duration/8, duration/8, duration/2]);
+                            }
+                        }, duration * 2);
+                        break;
+                        
+                    case 'heartbeat':
+                        this.vibrationInterval = setInterval(() => {
+                            if (this.isVibrating) {
+                                navigator.vibrate([duration/6, duration/12, duration/6, duration*2]);
+                            }
+                        }, duration * 3);
+                        break;
+                        
+                    case 'escalate':
+                        let escalateCount = 0;
+                        this.vibrationInterval = setInterval(() => {
+                            if (this.isVibrating) {
+                                const escalateDuration = duration * (0.5 + (escalateCount % 3) * 0.5);
+                                navigator.vibrate([escalateDuration, duration/2]);
+                                escalateCount++;
+                            }
+                        }, duration * 2);
+                        break;
+                        
+                    case 'throb':
+                        this.vibrationInterval = setInterval(() => {
+                            if (this.isVibrating) {
+                                navigator.vibrate([duration*1.5, duration/3, duration*1.5, duration]);
+                            }
+                        }, duration * 4);
+                        break;
+                        
+                    case 'rumble':
+                        this.vibrationInterval = setInterval(() => {
+                            if (this.isVibrating) {
+                                navigator.vibrate([duration*2, duration/4, duration*2, duration/4, duration]);
+                            }
+                        }, duration * 3);
+                        break;
+                        
+                    case 'flicker':
+                        this.vibrationInterval = setInterval(() => {
+                            if (this.isVibrating) {
+                                navigator.vibrate([duration/10, duration/10, duration/10, duration/10, duration/10, duration/10, duration/10, duration/10, duration/10, duration/10]);
+                            }
+                        }, duration);
+                        break;
+                        
+                    case 'hammer':
+                        this.vibrationInterval = setInterval(() => {
+                            if (this.isVibrating) {
+                                navigator.vibrate([duration*3, duration/2]);
+                            }
+                        }, duration * 4);
+                        break;
+                        
+                    case 'quake':
+                        this.vibrationInterval = setInterval(() => {
+                            if (this.isVibrating) {
+                                navigator.vibrate([duration*2.5, duration/8, duration*1.5, duration/8, duration*2.5, duration]);
+                            }
+                        }, duration * 4);
+                        break;
+                        
+                    case 'storm':
+                        this.vibrationInterval = setInterval(() => {
+                            if (this.isVibrating) {
+                                navigator.vibrate([duration/4, duration/8, duration/2, duration/8, duration*1.5, duration/8, duration, duration/8, duration*2, duration]);
+                            }
+                        }, duration * 5);
+                        break;
+                }
+            }
+            
+            updateVibrationIOS(duration) {
+                const interval = this.getIOSInterval(duration);
+                
+                this.vibrationInterval = setInterval(() => {
+                    if (this.isVibrating) {
+                        this.triggerIOSHaptic();
+                    }
+                }, interval);
+            }
+            
+            getIOSInterval(duration) {
+                switch (this.pattern) {
+                    case 'continuous':
+                        return Math.max(100, 1000 - (this.intensity * 8));
+                    case 'pulse':
+                        return Math.max(200, 2000 - (this.intensity * 15));
+                    case 'wave':
+                        return Math.max(150, 1500 - (this.intensity * 12));
+                    case 'burst':
+                        return Math.max(100, 1200 - (this.intensity * 10));
+                    case 'heartbeat':
+                        return Math.max(300, 2500 - (this.intensity * 18));
+                    case 'escalate':
+                        return Math.max(200, 1800 - (this.intensity * 14));
+                    case 'throb':
+                        return Math.max(400, 3000 - (this.intensity * 20));
+                    case 'rumble':
+                        return Math.max(150, 1400 - (this.intensity * 10));
+                    case 'flicker':
+                        return Math.max(50, 800 - (this.intensity * 6));
+                    case 'hammer':
+                        return Math.max(500, 4000 - (this.intensity * 25));
+                    case 'quake':
+                        return Math.max(300, 2800 - (this.intensity * 18));
+                    case 'storm':
+                        return Math.max(200, 2200 - (this.intensity * 15));
+                    default:
+                        return 500;
+                }
+            }
+            
+            triggerIOSHaptic() {
+                if (this.hapticTrigger) {
+                    this.hapticTrigger.checked = !this.hapticTrigger.checked;
+                    setTimeout(() => {
+                        this.hapticTrigger.checked = !this.hapticTrigger.checked;
+                    }, 10);
+                }
+            }
+            
+
+            
+            openPanel(panelName) {
+                // Close all panels first
+                this.closeAllPanels();
+                
+                // Open the requested panel
+                switch (panelName) {
+                    case 'intensity':
+                        this.intensityPanel.classList.add('active');
+                        this.intensityBtn.classList.add('active');
+                        break;
+                    case 'pattern':
+                        this.patternPanel.classList.add('active');
+                        this.patternBtn.classList.add('active');
+                        break;
+                    case 'timer':
+                        this.timerPanel.classList.add('active');
+                        this.timerBtn.classList.add('active');
+                        break;
+                }
+            }
+            
+            closePanel(panelName) {
+                switch (panelName) {
+                    case 'intensity':
+                        this.intensityPanel.classList.remove('active');
+                        this.intensityBtn.classList.remove('active');
+                        break;
+                    case 'pattern':
+                        this.patternPanel.classList.remove('active');
+                        this.patternBtn.classList.remove('active');
+                        break;
+                    case 'timer':
+                        this.timerPanel.classList.remove('active');
+                        this.timerBtn.classList.remove('active');
+                        break;
+                }
+            }
+            
+            closeAllPanels() {
+                this.intensityPanel.classList.remove('active');
+                this.patternPanel.classList.remove('active');
+                this.timerPanel.classList.remove('active');
+                this.controlButtons.forEach(btn => btn.classList.remove('active'));
+            }
+            
+            setIntensityLevel(level) {
+                switch (level) {
+                    case 'gentle':
+                        this.intensity = 25;
+                        break;
+                    case 'medium':
+                        this.intensity = 50;
+                        break;
+                    case 'intense':
+                        this.intensity = 75;
+                        break;
+                    case 'extreme':
+                        this.intensity = 100;
+                        break;
+                }
+                this.intensitySlider.value = this.intensity;
+                this.intensityValue.textContent = `${this.intensity}%`;
+            }
+            
+            setAutoOffTimer(seconds) {
+                if (this.autoOffTimer) {
+                    clearTimeout(this.autoOffTimer);
+                    this.autoOffTimer = null;
+                }
+                
+                if (seconds > 0) {
+                    this.autoOffTimer = setTimeout(() => {
+                        this.stopVibration();
+                        this.status.textContent = 'Auto-off timer completed';
+                    }, seconds * 1000);
+                }
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            new VibrationController();
+        });
+    </script>
+</body>
+</html>
